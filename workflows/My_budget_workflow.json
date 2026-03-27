@@ -1,0 +1,253 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "budget-tracker",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f61adc8d-87e8-46cc-959f-7ba6572fd2be",
+      "name": "Webhook",
+      "webhookId": "15bd0140-0611-4a3a-9d15-5a256544c2b5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.Body }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a personal budget tracker assistant. The user sends you their expenses via WhatsApp.  When the user logs an expense, always reply in this exact format:  Category: [Food/Transport/Bills/Entertainment/Misc] Amount: [number only, no currency symbol] Summary: [one friendly sentence confirming what was logged and a brief insight]  Example: User: \"spent 3500 on uber\" Category: Transport Amount: 3500 Summary: Logged! ₦3,500 on transport. You've been moving around a lot lately 🚗  If the user asks a question like \"how much have I spent?\" or \"what's my balance?\",  just reply conversationally in plain text — no need for the Category/Amount format.  Never use markdown like ** or ##. Always reply in plain text only. Keep it short and friendly — this is WhatsApp."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        272,
+        80
+      ],
+      "id": "e1a9a9b5-82d0-41ce-970c-48cc4aae39a8",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        304,
+        288
+      ],
+      "id": "9039ec56-5524-4e6e-90a6-2b87301755d0",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "SRp1IEZvK1WmcxK6",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1iIYxL-OrlpID2DqFu0YdPf61hFGiStpBwCeCfS515Zs",
+          "mode": "list",
+          "cachedResultName": "Budget Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iIYxL-OrlpID2DqFu0YdPf61hFGiStpBwCeCfS515Zs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iIYxL-OrlpID2DqFu0YdPf61hFGiStpBwCeCfS515Zs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ new Date().toISOString().split('T')[0] }}",
+            "Category": "={{ $json.text.match(/Category:\\s*(\\w+)/i)?.[1] ?? 'Misc' }}",
+            "Amount": "={{ $json.text.match(/Amount:\\s*([\\d,]+)/i)?.[1] ?? '' }}",
+            "Payment Method": "cash",
+            "Month": "={{ new Date().toLocaleString('default', { month: 'long' }) }}",
+            "Description": "={{ $('Webhook').item.json.body.Body }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Payment Method",
+              "displayName": "Payment Method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Month",
+              "displayName": "Month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        576,
+        96
+      ],
+      "id": "5e1b90fc-4cb6-4cb2-bdd0-6187916a7695",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xnyB5njC93tUYldY",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Message>{{ $('Basic LLM Chain').item.json.text }}</Message>\n</Response>",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/xml"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        784,
+        144
+      ],
+      "id": "0709ecbb-2bdc-4867-81b8-abf6df4f2492",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c1cb6e91-c107-410d-9818-75e0d5191313",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d9473e7da565b0b13b0806ad120655ac7f4d7cef819037195c5ff8f5372ac03d"
+  },
+  "id": "XoriKHm6lRehrYAt",
+  "tags": []
+}
